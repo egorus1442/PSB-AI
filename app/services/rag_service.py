@@ -1,4 +1,19 @@
-def stub_rag(request_data: dict) -> dict:
+import json
+from pydantic import BaseModel
+
+
+class RagRequest(BaseModel):
+    id: str
+    thread_id: str
+    question: str
+
+
+class RagResponse(BaseModel):
+    id: str
+    answer: str
+
+
+def stub_rag(request_data: RagRequest) -> RagResponse:
     """
     Функция-заглушка для RAG-системы.
     
@@ -15,8 +30,8 @@ def stub_rag(request_data: dict) -> dict:
         "answer": "Ответ"
     }
     """
-    response = {
-        "id": request_data.get("id", "no_id"),
-        "answer": "Ответ"
-    }
+    response = RagResponse(
+        id = request_data.id,
+        answer="Тестовый ответ. Запрос: " + json.dumps(dict(request_data))
+    )
     return response
