@@ -1,10 +1,11 @@
 import json
+import uuid
 from pydantic import BaseModel
 
 
 class RagRequest(BaseModel):
     id: str
-    thread_id: str
+    thread_id: uuid.UUID
     question: str
 
 
@@ -32,6 +33,6 @@ def stub_rag(request_data: RagRequest) -> RagResponse:
     """
     response = RagResponse(
         id = request_data.id,
-        answer="Тестовый ответ. Запрос: " + json.dumps(dict(request_data))
+        answer="Тестовый ответ."
     )
     return response

@@ -5,7 +5,7 @@ import httpx
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.filters import Command
-from sqlalchemy import Column, String, create_engine
+from sqlalchemy import Column, String, create_engine, UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -24,7 +24,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 class UserThread(Base):
     __tablename__ = "threads"
     chat_id = Column(String, primary_key=True, index=True)
-    thread_id = Column(String)
+    thread_id = Column(UUID)
 
 Base.metadata.create_all(bind=engine)
 
@@ -32,7 +32,7 @@ Base.metadata.create_all(bind=engine)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-async def get_thread_id(chat_id: int) -> str:
+async def get_thread_id(chat_id: int) -> uuid.UUID:
     session = SessionLocal()
     try:
         record = session.query(UserThread).filter(UserThread.chat_id == str(chat_id)).first()
@@ -40,7 +40,7 @@ async def get_thread_id(chat_id: int) -> str:
     finally:
         session.close()
 
-async def set_thread_id(chat_id: int, thread_id: str):
+async def set_thread_id(chat_id: int, thread_id: uuid.UUID):
     session = SessionLocal()
     try:
         record = session.query(UserThread).filter(UserThread.chat_id == str(chat_id)).first()
@@ -64,7 +64,7 @@ async def cmd_start(message: Message):
 @dp.message(Command("reset"))
 async def cmd_reset(message: Message):
     chat_id = message.chat.id
-    await set_thread_id(chat_id, str(uuid.uuid4()))
+    await set_thread_id(chat_id, uuid.uuid4())
     await message.answer("Контекст диалога сброшен.")
 
 @dp.message()
@@ -79,7 +79,7 @@ async def handle_message(message: Message):
         thread_id = str(uuid.uuid4())
         await set_thread_id(chat_id, thread_id)
     request_id = str(uuid.uuid4())
-    payload = {"id": request_id, "question": question, "thread_id": thread_id}
+    payload = {"id": request_id, "question": question, "thread_id": str(thread_id)}
 
     async with httpx.AsyncClient() as client:
         try:

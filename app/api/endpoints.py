@@ -76,7 +76,7 @@ def get_token(login_data: TokenLoginRequest, db: Session = Depends(get_db)):
 class ChatRequest(BaseModel):
     id: str
     question: str
-    thread_id: str
+    thread_id: uuid.UUID
 
 class ChatResponse(BaseModel):
     id: str
@@ -117,7 +117,7 @@ def public_send_message(
     
     rag_request = RagRequest(
         id = request.id,
-        thread_id = f"Public/{user.id}({request.thread_id})",
+        thread_id = request.thread_id,
         question=request.question
     )
     rag_response = rag_send_message(rag_request, db, user_id=user.id)
@@ -147,7 +147,7 @@ def web_send_message(
 ):
     rag_request = RagRequest(
         id = request.id,
-        thread_id = f"Web/{session_id}({request.thread_id})",
+        thread_id = request.thread_id,
         question=request.question
     )
     rag_response = rag_send_message(rag_request, db, session_id=session_id)
@@ -166,7 +166,7 @@ def bot_send_message(
 ):
     rag_request = RagRequest(
         id = request.id,
-        thread_id = f"Bot/{chat_id}({request.thread_id})",
+        thread_id = request.thread_id,
         question=request.question
     )
     rag_response = rag_send_message(rag_request, db, chat_id=chat_id)
