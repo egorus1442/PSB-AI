@@ -1,14 +1,25 @@
 from typing import Optional
 from datetime import datetime
-
+import logging
 from sqlalchemy import Column, Integer, String, Text, DateTime, UUID
 from sqlalchemy.orm import Session
-
 
 from app.services.rag_service import RagRequest, RagResponse, stub_rag
 from app.services.db import Base, engine
 
-# Определение модели для логирования запросов/ответов RAG
+# 1) Настраиваем логгер для записи в файл
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('rag_requests.log', encoding='utf-8')
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s [%(levelname)s] request_id=%(request_id)s thread_id=%(thread_id)s '
+    'user_id=%(user_id)s chat_id=%(chat_id)s session_id=%(session_id)s '
+    'question="%(question)s" answer="%(answer)s"'
+))
+logger.addHandler(file_handler)
+
+
 class LogRag(Base):
     __tablename__ = 'log_rag'
 
@@ -22,7 +33,6 @@ class LogRag(Base):
     session_id = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-# Создаём таблицу в базе данных, если ещё не создана
 Base.metadata.create_all(bind=engine)
 
 
@@ -34,12 +44,13 @@ def rag_send_message(
     session_id: Optional[str] = None
 ) -> RagResponse:
     """
-    Отправляет запрос в RAG-сервис, логирует запрос и ответ в таблицу log_rag.
+    Отправляет запрос в RAG-сервис, логирует запрос и ответ
+    в таблицу log_rag и в файл rag_requests.log.
     """
     # Отправка запроса в RAG (stub)
     response: RagResponse = stub_rag(request)
 
-    # Формирование записи лога
+    # 2) Логируем в базу
     log_entry = LogRag(
         request_id=request.id,
         thread_id=request.thread_id,
@@ -50,8 +61,21 @@ def rag_send_message(
         session_id=session_id,
         timestamp=datetime.utcnow()
     )
-    # Сохранение лога в базе данных
     db_session.add(log_entry)
     db_session.commit()
+
+    # 3) Логируем в файл
+    logger.info(
+        '',
+        extra={
+            'request_id': request.id,
+            'thread_id': request.thread_id,
+            'question': request.question,
+            'answer': response.answer,
+            'user_id': user_id,
+            'chat_id': chat_id,
+            'session_id': session_id
+        }
+    )
 
     return response
